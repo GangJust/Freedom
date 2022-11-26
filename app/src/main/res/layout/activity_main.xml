@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="24dp"
+    tools:context=".activity.MainActivity">
+
+    <View
+        android:id="@+id/statusBarView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/white" />
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        app:menu="@menu/module_menu"
+        app:subtitle="@string/app_sub_name"
+        app:subtitleTextColor="@color/text"
+        app:title="@string/app_name"
+        app:titleMarginBottom="8dp"
+        app:titleTextColor="@color/black" />
+
+    <TextView
+        android:id="@+id/moduleHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        android:background="@drawable/module_hint_background"
+        android:gravity="center"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="28dp"
+        android:text="@string/module_disable"
+        android:textColor="@color/text" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/customDownloadSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        android:background="@drawable/module_hint_background"
+        android:checked="false"
+        android:paddingHorizontal="24dp"
+        android:text="@string/module_custom_download"
+        android:textColor="@color/text" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/clipDataDetailSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        android:background="@drawable/module_hint_background"
+        android:checked="false"
+        android:paddingHorizontal="24dp"
+        android:text="@string/module_clip_data_detail"
+        android:textColor="@color/text" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/saveEmojiSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        android:background="@drawable/module_hint_background"
+        android:checked="false"
+        android:paddingHorizontal="24dp"
+        android:text="@string/module_save_emoji"
+        android:textColor="@color/text" />
+
+    <TextView
+        android:id="@+id/moduleExplain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        android:background="@drawable/module_hint_background"
+        android:gravity="start"
+        android:lineSpacingMultiplier="1.2"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="16dp"
+        android:text="@string/module_explain"
+        android:textAlignment="textStart"
+        android:textColor="@color/text"
+        android:visibility="visible" />
+
+    <include
+        android:id="@+id/moduleGithubSrc"
+        layout="@layout/layout_icon_item"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        android:visibility="visible" />
+</LinearLayout>

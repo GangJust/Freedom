@@ -1,0 +1,32 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="2dp"
+    android:focusable="true"
+    android:foreground="@drawable/item_multiple_choice_foreground"
+    android:minHeight="?android:attr/listPreferredItemHeightSmall"
+    android:textAppearance="?android:attr/textAppearanceListItemSmall">
+
+    <TextView
+        android:id="@+id/multipleChoiceItemText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toStartOf="@+id/multipleChoiceItemIcon"
+        android:paddingVertical="12dp"
+        android:paddingStart="16dp"
+        android:text="item"
+        android:textColor="#ff333333"
+        android:textSize="16sp" />
+
+    <ImageView
+        android:id="@+id/multipleChoiceItemIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:layout_marginHorizontal="16dp"
+        android:src="@drawable/ic_round_check"
+        android:visibility="invisible" />
+</RelativeLayout>
