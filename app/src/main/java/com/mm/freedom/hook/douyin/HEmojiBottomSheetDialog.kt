@@ -3,6 +3,7 @@ package com.mm.freedom.hook.douyin
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Environment
+import android.os.Parcelable
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.core.graphics.drawable.toBitmap
@@ -13,24 +14,28 @@ import com.mm.freedom.utils.GLogUtils
 import com.mm.freedom.utils.GPathUtils
 import com.mm.freedom.utils.GViewUtils
 import com.mm.freedom.xposed.DialogHelper
+import com.ss.android.ugc.aweme.emoji.model.Emoji
 import com.ss.android.ugc.aweme.emoji.store.view.EmojiBottomSheetDialog
 import com.ss.android.ugc.aweme.emoji.views.EmojiDetailDialog
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedBridge
+import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import java.io.File
 
 /**
  * 抖音表情详情查看弹层(聊天页, 弹出的底部弹层) EmojiDetailDialog
+ *
  */
+@Deprecated("请使用评论区图片长按保存")
 class HEmojiBottomSheetDialog(lpparam: XC_LoadPackage.LoadPackageParam?) :
     DialogHelper<EmojiBottomSheetDialog>(lpparam, EmojiBottomSheetDialog::class.java) {
 
     override fun onAfterCreate(hookDialog: EmojiBottomSheetDialog, bundle: Bundle?) {
-        ModuleConfig.getModuleConfig(hookDialog.context) {
+        ModuleConfig.getModuleConfig(application) {
             if (!it.isSaveEmojiValue) return@getModuleConfig
             if (hookDialog is EmojiDetailDialog) {
-                handler.post {
-                    setEmojiDetail(hookDialog, it)
-                }
+                setEmojiDetail(hookDialog, it)
             }
         }
     }

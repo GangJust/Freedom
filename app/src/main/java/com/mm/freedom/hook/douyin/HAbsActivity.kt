@@ -5,35 +5,54 @@ import android.app.ProgressDialog
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Bundle
 import android.os.Environment
-import android.view.View
-import android.view.ViewGroup
+import android.os.Parcel
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.LinearLayout
 import androidx.core.graphics.drawable.toBitmap
 import com.bytedance.ies.uikit.base.AbsActivity
+import com.freegang.androidtemplate.base.interfaces.TemplateCall
+import com.freegang.androidtemplate.base.interfaces.TemplateCallDefault
 import com.mm.freedom.config.Config
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.hook.base.BaseActivityHelper
 import com.mm.freedom.utils.*
+import com.ss.android.ugc.aweme.base.model.UrlModel
+import com.ss.android.ugc.aweme.comment.model.CommentImageStruct
 import com.ss.android.ugc.aweme.comment.ui.GifEmojiDetailActivity
 import com.ss.android.ugc.aweme.comment.ui.ImageDetailActivity
 import com.ss.android.ugc.aweme.detail.ui.DetailActivity
+import com.ss.android.ugc.aweme.emoji.model.Emoji
 import com.ss.android.ugc.aweme.main.MainActivity
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import java.io.File
+import java.util.*
 import java.util.regex.Pattern
 
 /**
  * 抖音基础类, 基本上所有的Activity类都是继承至它的, 至少目前用到的所有类
  */
 class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
-    BaseActivityHelper<AbsActivity>(lpparam, AbsActivity::class.java) {
+    BaseActivityHelper<AbsActivity>(lpparam, AbsActivity::class.java), TemplateCallDefault {
     private lateinit var config: Config
     private var onPrimaryClipChangedListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+
+    override fun onAfterCreate(hookActivity: AbsActivity, bundle: Bundle?) {
+        lockRunning(".gifEmoji") {
+            ModuleConfig.getModuleConfig(application) {
+                config = it
+                if (isInstance(hookActivity, GifEmojiDetailActivity::class.java)
+                    || isInstance(hookActivity, ImageDetailActivity::class.java)
+                ) {
+                    //GLogUtils.xLog("Emoji!!")
+                    hookEmoji(hookActivity)
+                }
+            }
+        }
+    }
 
     override fun onBeforeResume(hookActivity: AbsActivity) {
         lockRunning(".running") {
@@ -44,13 +63,6 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
                 ) {
                     //GLogUtils.xLog("Video!!")
                     hookVideo(hookActivity)
-                }
-
-                if (isInstance(hookActivity, GifEmojiDetailActivity::class.java)
-                    || isInstance(hookActivity, ImageDetailActivity::class.java)
-                ) {
-                    //GLogUtils.xLog("Emoji!!")
-                    hookEmoji(hookActivity)
                 }
             }
         }
@@ -337,12 +349,15 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
             return
         }
         //按道理说, 以下两个方法内部都是通用的, 但是无法避免抖音后期更新可能照成布局改动, 因此分开写
+        //hookGifEmojiOld(hookActivity)
+        //hookImageDetailOld(hookActivity)
+
         hookGifEmoji(hookActivity)
         hookImageDetail(hookActivity)
     }
 
     // 评论区 -> 表情详情查看页 GifEmojiDetailActivity
-    private fun hookGifEmoji(hookActivity: AbsActivity) {
+    private fun hookGifEmojiOld(hookActivity: AbsActivity) {
         if (hookActivity is GifEmojiDetailActivity) {
             handler.post { showToast(hookActivity, "查看表情") }
             //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
@@ -365,8 +380,42 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
         }
     }
 
+    private fun hookGifEmoji(hookActivity: AbsActivity) {
+        if (hookActivity is GifEmojiDetailActivity) {
+            handler.post { showToast(hookActivity, "浏览表情") }
+            val gifEmojiExtra = hookActivity.intent.getSerializableExtra("gif_emoji")
+            call(gifEmojiExtra) {
+                val emoji = gifEmojiExtra as Emoji
+                val animateUrl = emoji.animateUrl
+                call(animateUrl) {
+                    val urlList = animateUrl.urlList
+                    if (urlList.isNotEmpty()) {
+                        val gifEmojiUrl = urlList.last()
+                        //handler.post { GLogUtils.xLogAndToast(hookActivity, "表情URL: $gifEmojiUrl") }
+                        // 获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
+                        val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
+                        // 获取到该布局下的 所有ImageView
+                        val findViews = GViewUtils.findViews(contentView, ImageView::class.java)
+                        // 最后一个是表情图片, 类名(RemoteImageView), 后期可能发生变动
+                        val remoteImageView = findViews.last()
+                        // handler.post { GLogUtils.xLogAndToast(hookActivity, "ImageViewType: ${remoteImageView::class.java.name}") }
+                        if (remoteImageView::class.java.name.contains("RemoteImageView")) { //这里需要注意, 后期抖音可能混淆该类
+                            remoteImageView.isLongClickable = true
+                            remoteImageView.setOnLongClickListener {
+                                //表情统一用gif作为后缀
+                                downloadEmoji(hookActivity, gifEmojiUrl, "gif")
+                                true
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
     // 评论区 -> 图片详情查看页 ImageDetailActivity
-    private fun hookImageDetail(hookActivity: AbsActivity) {
+    private fun hookImageDetailOld(hookActivity: AbsActivity) {
         if (hookActivity is ImageDetailActivity) {
             handler.post { showToast(hookActivity, "查看表情") }
             //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
@@ -388,6 +437,45 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
         }
     }
 
+    private fun hookImageDetail(hookActivity: AbsActivity) {
+        if (hookActivity is ImageDetailActivity) {
+            handler.post { showToast(hookActivity, "浏览图片") }
+            val commentImageExtra = hookActivity.intent.getSerializableExtra("key_image")
+            call(commentImageExtra) {
+                val commentImage = commentImageExtra as CommentImageStruct
+                val originUrl = commentImage.originUrl
+                call(originUrl) {
+                    val urlList = originUrl.urlList
+                    if (urlList.isNotEmpty()) {
+                        val commentImageUrl = urlList.first()
+                        //handler.post { GLogUtils.xLogAndToast(hookActivity, "图片URL: $commentImageUrl") }
+                        //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
+                        val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
+                        //获取到该布局下的 所有ImageView
+                        val findViews = GViewUtils.findViews(contentView, ImageView::class.java)
+                        //最后一个是表情图片, 类名(RemoteImageView), 后期可能发生变动
+                        val remoteImageView = findViews.last()
+                        if (remoteImageView::class.java.name.contains("RemoteImageView")) {
+                            remoteImageView.isLongClickable = true
+                            remoteImageView.setOnLongClickListener {
+                                var suffix = "png"
+                                if (commentImageUrl.lowercase(Locale.getDefault()).contains(".gif")) {
+                                    suffix = "gif"
+                                } else if (commentImageUrl.lowercase(Locale.getDefault()).contains(".jpg")) {
+                                    suffix = "jpg"
+                                } else if (commentImageUrl.lowercase(Locale.getDefault()).contains(".jpeg")) {
+                                    suffix = "jpeg"
+                                }
+                                downloadEmoji(hookActivity, commentImageUrl, suffix)
+                                true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // 保存图片到本地
     private fun savePicture(hookActivity: AbsActivity, bitmap: Bitmap) {
         // 保存路径
@@ -397,12 +485,29 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
             path = ModuleConfig.getModuleDirectory(hookActivity, "Emoji")
         }
 
-        // 新起一个线程, 保存图片表情
         Thread {
             //以时间戳作为文件名
             val result = GBitmapUtils.bitmap2Path(bitmap, path.absolutePath, "${System.currentTimeMillis()}.png")
             handler.post {
                 showToast(hookActivity, "保存${if (result) "成功^_^" else "失败~_~"}!")
+            }
+        }.start()
+    }
+
+    // 下载表情
+    private fun downloadEmoji(hookActivity: AbsActivity, url: String, suffix: String) {
+        // 保存路径
+        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM)
+        // 如果打开了下载到Freedom文件夹开关
+        if (config.isCustomDownloadValue) {
+            path = ModuleConfig.getModuleDirectory(hookActivity, "Emoji")
+        }
+        Thread {
+            //GLogUtils.xLog("保存: $url")
+            // 以时间戳作为文件名
+            val download = GHttpUtils.download(url, path.absolutePath, "${System.currentTimeMillis()}.$suffix") { real, total -> }
+            handler.post {
+                showToast(hookActivity, "保存${if (download) "成功^_^" else "失败~_~"}!")
             }
         }.start()
     }

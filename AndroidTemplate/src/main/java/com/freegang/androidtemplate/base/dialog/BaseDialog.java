@@ -95,13 +95,13 @@ public abstract class BaseDialog<V extends ViewBinding, E extends BaseDialog.Bas
 
     protected abstract V callCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState);
 
-    protected abstract void initView(V binding);
+    protected abstract void initView(@NonNull V binding);
 
-    protected abstract void initEvent(V binding);
+    protected abstract void initEvent(@NonNull V binding);
 
     protected abstract E saveState();
 
-    protected abstract void restoreState(E entity);
+    protected abstract void restoreState(@NonNull E entity);
 
     public abstract static class BaseDialogEntity implements Serializable {
         private static final long serialVersionUID = -6275885648670519265L;

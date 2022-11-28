@@ -164,7 +164,7 @@ public class MultipleChoiceDialog extends BaseDialog<LayoutMultipleChoiceDialogB
     }
 
     @Override
-    protected void initView(LayoutMultipleChoiceDialogBinding binding) {
+    protected void initView(@NonNull LayoutMultipleChoiceDialogBinding binding) {
         binding.multipleChoiceDialogTitle.setText(this.entity.title);
         binding.multipleChoiceDialogTitle.setTextAlignment(this.entity.centerTitle ? View.TEXT_ALIGNMENT_CENTER : View.TEXT_ALIGNMENT_INHERIT);
 
@@ -181,7 +181,7 @@ public class MultipleChoiceDialog extends BaseDialog<LayoutMultipleChoiceDialogB
     }
 
     @Override
-    protected void initEvent(LayoutMultipleChoiceDialogBinding binding) {
+    protected void initEvent(@NonNull LayoutMultipleChoiceDialogBinding binding) {
         binding.multipleChoiceDialogCancel.setOnClickListener(v -> {
             call(this.entity.onCancelCallback, it -> it.onCancel(this), this::dismiss);
         });
@@ -204,7 +204,7 @@ public class MultipleChoiceDialog extends BaseDialog<LayoutMultipleChoiceDialogB
     }
 
     @Override
-    protected void restoreState(MultipleChoiceDialogEntity entity) {
+    protected void restoreState(@NonNull MultipleChoiceDialogEntity entity) {
         this.entity = entity;
     }
 

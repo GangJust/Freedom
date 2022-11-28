@@ -1,6 +1,8 @@
 package com.mm.freedom.xposed;
 
 
+import android.app.AndroidAppHelper;
+import android.app.Application;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -20,6 +22,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * @author Gang, GitHub Home: https://github.com/GangJust
  */
 public abstract class XposedExtendHelper {
+    protected static final Application application = AndroidAppHelper.currentApplication();
     protected static final Handler handler = new Handler(Looper.getMainLooper()); //创建一个静态消息队列, 最大限度缓解内存泄漏
     protected final XC_LoadPackage.LoadPackageParam lpparam;
 

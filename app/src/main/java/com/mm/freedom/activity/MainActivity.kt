@@ -6,18 +6,26 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.view.animation.Animation
+import android.view.animation.RotateAnimation
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.ContextCompat
+import com.freegang.androidtemplate.dialog.MessageDialog
 import com.gyf.immersionbar.ImmersionBar
 import com.mm.freedom.R
 import com.mm.freedom.config.Config
 import com.mm.freedom.config.ModuleConfig
+import com.mm.freedom.config.Version
 import com.mm.freedom.databinding.ActivityMainBinding
 import com.permissionx.guolindev.PermissionX
 
 class MainActivity : AppCompatActivity() {
     private var binding: ActivityMainBinding? = null
+    private var versionConfig: Version.VersionConfig? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         requestStoragePermission()
         initViews()
         initEvents()
+        checkVersion()
     }
 
     override fun onResume() {
@@ -52,27 +61,86 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        initMenu()
+        initMenu(false)
     }
 
-    private fun initMenu() {
-        //菜单(这么写能动态操作菜单)
-        val item = binding!!.toolbar.menu.findItem(R.id.moduleMenuOther)
-        item.setOnMenuItemClickListener {
-            Toast.makeText(this, "暂无更多操作", Toast.LENGTH_SHORT).show()
-            true
+    private fun initMenu(hasUpdate: Boolean) {
+        val item = binding!!.toolbar.menu.findItem(R.id.moduleMenuOther).apply {
+            actionView = layoutInflater.inflate(R.layout.menu_action_view, null) as ImageView
+        }
+        val view = item.actionView as ImageView
+        //有更新, 开启旋转动画
+        if (hasUpdate) {
+            view.apply {
+                setImageDrawable(AppCompatResources.getDrawable(this.context, R.drawable.ic_montion_state_badge))
+                startAnimation(RotateAnimation(
+                    0f,
+                    450f,
+                    Animation.RELATIVE_TO_SELF,
+                    0.5f,
+                    Animation.RELATIVE_TO_SELF,
+                    0.5f
+                ).apply {
+                    duration = 1000
+                    fillAfter = true
+                })
+            }
+        } else {
+            view.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_motion_state))
+        }
+        //
+        view.setOnClickListener() {
+            if (!hasUpdate) {
+                Toast.makeText(this, "暂无更多操作", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            showUpdateDialog()
         }
     }
 
     private fun initEvents() {
         binding!!.moduleGithubSrc.root.setOnClickListener {
             //Toast.makeText(this, "计划进行中", Toast.LENGTH_SHORT).show()
-            val intent = Intent().apply {
-                action = "android.intent.action.VIEW"
-                data = Uri.parse(getString(R.string.module_github_url))
-            }
-            startActivity(intent)
+            openBrowse(getString(R.string.module_github_url))
         }
+    }
+
+    //版本检查
+    private fun checkVersion() {
+        try {
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            val versionName = packageInfo.versionName
+            Version.getRemoteReleasesLatest {
+                if (it.tagName.isEmpty() || it.name.isEmpty()) return@getRemoteReleasesLatest
+                if ("v${versionName}" == it.tagName.lowercase() || "v${versionName}" == it.name.lowercase()) return@getRemoteReleasesLatest
+                runOnUiThread {
+                    Toast.makeText(application, "有新版本了!", Toast.LENGTH_SHORT).show()
+                    versionConfig = it
+                    initMenu(true)
+                    showUpdateDialog()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    //显示更新弹窗
+    private fun showUpdateDialog() {
+        val versionConfig = versionConfig ?: return
+        MessageDialog()
+            .setTitle("发现新版本${versionConfig.tagName}!")
+            .setContent(versionConfig.body)
+            .setConfirm("蓝奏云(密码:1234)")
+            .setCancel("Github")
+            .setConfirmColor(ContextCompat.getColor(this, R.color.teal_200))
+            .setOnConfirmCallback {
+                openBrowse(getString(R.string.module_lanzou_url))
+            }
+            .setOnCancelCallback {
+                openBrowse(versionConfig.htmlUrl)
+            }
+            .show(supportFragmentManager)
     }
 
     //权限获取
@@ -116,6 +184,14 @@ class MainActivity : AppCompatActivity() {
         config.isClipDataDetailValue = binding?.clipDataDetailSwitch?.isChecked ?: false
         config.isSaveEmojiValue = binding?.saveEmojiSwitch?.isChecked ?: false
         ModuleConfig.putModuleConfig(this@MainActivity, config)
+    }
+
+    private fun openBrowse(url: String) {
+        val intent = Intent().apply {
+            action = "android.intent.action.VIEW"
+            data = Uri.parse(url)
+        }
+        startActivity(intent)
     }
 
     //Xposed进行Hook调用, 设置模块状态

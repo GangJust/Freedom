@@ -31,6 +31,17 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
     }
 
     /**
+     * 标题颜色
+     *
+     * @param titleColor
+     * @return
+     */
+    public MessageDialog setTitleColor(int titleColor) {
+        this.entity.titleColor = titleColor;
+        return this;
+    }
+
+    /**
      * 标题是否居中
      *
      * @param centerTitle
@@ -101,6 +112,17 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
     }
 
     /**
+     * 是否反正操作按钮颜色
+     *
+     * @param reversalColor
+     * @return
+     */
+    public MessageDialog setReversalColor(boolean reversalColor) {
+        this.entity.isReversalColor = reversalColor;
+        return this;
+    }
+
+    /**
      * 是否是单按钮, 如果为 true 则只会响应 confirm 相关的设置
      *
      * @param singleButton
@@ -136,8 +158,9 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
     }
 
     @Override
-    protected void initView(LayoutMessageDialogBinding binding) {
+    protected void initView(@NonNull LayoutMessageDialogBinding binding) {
         binding.messageDialogTitle.setText(this.entity.title);
+        binding.messageDialogTitle.setTextColor(this.entity.titleColor);
         binding.messageDialogTitle.setTextAlignment(this.entity.centerTitle ? View.TEXT_ALIGNMENT_CENTER : View.TEXT_ALIGNMENT_INHERIT);
 
         binding.messageDialogContent.setText(this.entity.content);
@@ -149,7 +172,13 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
         binding.messageDialogConfirm.setText(this.entity.confirm);
         binding.messageDialogConfirm.setTextColor(this.entity.confirmColor);
 
-        //如果是一个按钮
+        // 如果反转操作按钮颜色
+        if(entity.isReversalColor){
+            binding.messageDialogCancel.setTextColor(this.entity.confirmColor);
+            binding.messageDialogConfirm.setTextColor(this.entity.cancelColor);
+        }
+
+        // 如果显示单个按钮
         if (this.entity.isSingleButton) {
             binding.messageDialogCancel.setVisibility(View.GONE);
             binding.messageDialogConfirm.setBackgroundResource(R.drawable.dialog_single_button_background);
@@ -157,7 +186,7 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
     }
 
     @Override
-    protected void initEvent(LayoutMessageDialogBinding binding) {
+    protected void initEvent(@NonNull LayoutMessageDialogBinding binding) {
         binding.messageDialogCancel.setOnClickListener(v -> {
             call(this.entity.onMessageDialogCancelCallback, it -> it.onCancel(this), this::dismiss);
         });
@@ -172,7 +201,7 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
     }
 
     @Override
-    protected void restoreState(MessageDialogEntity entity) {
+    protected void restoreState(@NonNull MessageDialogEntity entity) {
         this.entity = entity;
     }
 
@@ -195,6 +224,8 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
         private static final long serialVersionUID = 3121241690534610292L;
         //标题文本
         private String title = "Tips";
+        //标题文本颜色
+        private int titleColor = Color.parseColor("#ff333333");
         //标题是否居中
         private boolean centerTitle = false;
         //消息内容
@@ -209,6 +240,8 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
         private String confirm = "确定";
         //确定文本颜色
         private int confirmColor = Color.parseColor("#ff46ADFB");
+        //是否翻转操作按钮颜色
+        private boolean isReversalColor = false;
         //是否是单个按钮(如果是, 则只响应确定按钮事件)
         private boolean isSingleButton = false;
         //取消回调事件

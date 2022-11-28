@@ -41,7 +41,6 @@ public class GHttpUtils {
             conn.disconnect();
         } catch (Exception e) {
             e.printStackTrace();
-            GLogUtils.xException(e.getMessage());
         }
         return builder.toString();
     }
@@ -82,7 +81,6 @@ public class GHttpUtils {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            GLogUtils.xException(e.getMessage());
         }
         return redirectsUrl;
     }
@@ -126,7 +124,6 @@ public class GHttpUtils {
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
-                GLogUtils.xException(e.getMessage());
             }
         }
 

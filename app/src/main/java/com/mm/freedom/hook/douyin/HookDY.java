@@ -10,6 +10,5 @@ public class HookDY extends XposedExtendHelper {
         super(lpparam);
         new HMainActivity(lpparam);
         new HAbsActivity(lpparam);
-        new HEmojiBottomSheetDialog(lpparam);
     }
 }

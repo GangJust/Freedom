@@ -133,7 +133,7 @@ public class ChoiceDialog extends BaseDialog<LayoutChoiceDialogBinding, ChoiceDi
     }
 
     @Override
-    protected void initView(LayoutChoiceDialogBinding binding) {
+    protected void initView(@NonNull LayoutChoiceDialogBinding binding) {
         binding.choiceDialogTitle.setText(this.entity.title);
         binding.choiceDialogTitle.setTextAlignment(this.entity.centerTitle ? View.TEXT_ALIGNMENT_CENTER : View.TEXT_ALIGNMENT_INHERIT);
 
@@ -150,7 +150,7 @@ public class ChoiceDialog extends BaseDialog<LayoutChoiceDialogBinding, ChoiceDi
     }
 
     @Override
-    protected void initEvent(LayoutChoiceDialogBinding binding) {
+    protected void initEvent(@NonNull LayoutChoiceDialogBinding binding) {
         binding.choiceDialogCancel.setOnClickListener(v -> {
             call(this.entity.onCancelCallback, it -> it.onCancel(this), this::dismiss);
         });
@@ -167,7 +167,7 @@ public class ChoiceDialog extends BaseDialog<LayoutChoiceDialogBinding, ChoiceDi
     }
 
     @Override
-    protected void restoreState(ChoiceDialogEntity entity) {
+    protected void restoreState(@NonNull ChoiceDialogEntity entity) {
         this.entity = entity;
     }
 
