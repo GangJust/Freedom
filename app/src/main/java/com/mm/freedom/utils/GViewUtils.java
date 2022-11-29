@@ -21,7 +21,7 @@ public class GViewUtils {
         return list;
     }
 
-    public static void _recursionViewGroup(ViewGroup viewGroup, List<View> list) {
+    private static void _recursionViewGroup(ViewGroup viewGroup, List<View> list) {
         int childCount = viewGroup.getChildCount();
         if (childCount == 0) return;
         for (int i = 0; i < childCount; i++) {
@@ -48,16 +48,17 @@ public class GViewUtils {
         return list;
     }
 
-    public static <T extends View> void _recursionViewGroup(ViewGroup viewGroup, List<T> list, Class<T> targetType) {
+    private static <T extends View> void _recursionViewGroup(ViewGroup viewGroup, List<T> list, Class<T> targetType) {
         int childCount = viewGroup.getChildCount();
         if (childCount == 0) return;
         for (int i = 0; i < childCount; i++) {
             View childAt = viewGroup.getChildAt(i);
             if (childAt instanceof ViewGroup) {
-                //GLogUtil.xLog("内部递归ViewGroup: content=" + childAt.getContentDescription() + ", id=" + childAt.getId() + ", name=" + childAt.getClass().getName());
+                if (targetType.isInstance(childAt)) {
+                    list.add(targetType.cast(childAt));
+                }
                 _recursionViewGroup((ViewGroup) childAt, list, targetType);
             } else {
-                //GLogUtil.xLog("内部递归View: content=" + childAt.getContentDescription() + ", id=" + childAt.getId() + ", name=" + childAt.getClass().getName());
                 if (targetType.isInstance(childAt)) {
                     list.add(targetType.cast(childAt));
                 }
@@ -80,18 +81,23 @@ public class GViewUtils {
         return list;
     }
 
-    public static <T extends View> void _recursionViewGroup(ViewGroup viewGroup, List<T> list, Class<T> targetType, String containsContentDescription) {
+    private static <T extends View> void _recursionViewGroup(ViewGroup viewGroup, List<T> list, Class<T> targetType, String containsContentDescription) {
+        if (containsContentDescription == null) return;
         int childCount = viewGroup.getChildCount();
         if (childCount == 0) return;
         for (int i = 0; i < childCount; i++) {
             View childAt = viewGroup.getChildAt(i);
+            String contentDescription = childAt.getContentDescription().toString();
             if (childAt instanceof ViewGroup) {
-                //GLogUtil.xLog("内部递归ViewGroup: content=" + childAt.getContentDescription() + ", id=" + childAt.getId() + ", name=" + childAt.getClass().getName());
-                _recursionViewGroup((ViewGroup) childAt, list, targetType);
-            } else {
-                //GLogUtil.xLog("内部递归: content=" + childAt.getContentDescription() + ", id=" + childAt.getId() + ", name=" + childAt.getClass().getName());
                 if (targetType.isInstance(childAt)) {
-                    if (containsContentDescription != null && childAt.getContentDescription().toString().contains(containsContentDescription)) {
+                    if (contentDescription.contains(containsContentDescription)) {
+                        list.add(targetType.cast(childAt));
+                    }
+                }
+                _recursionViewGroup((ViewGroup) childAt, list, targetType, containsContentDescription);
+            } else {
+                if (targetType.isInstance(childAt)) {
+                    if (contentDescription.contains(containsContentDescription)) {
                         list.add(targetType.cast(childAt));
                     }
                 }
@@ -159,6 +165,7 @@ public class GViewUtils {
 
     /**
      * 参照: XposedHelpers#findFieldRecursiveImpl
+     * see at: GReflectUtils.java
      *
      * @param clazz
      * @param fieldName
