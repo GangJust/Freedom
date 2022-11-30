@@ -1,5 +1,7 @@
 package com.mm.freedom.utils;
 
+import com.mm.freedom.config.ErrorLog;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -40,7 +42,8 @@ public class GHttpUtils {
             inputStream.close();
             conn.disconnect();
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            ErrorLog.getInstance().exceptionLog("log", e);
         }
         return builder.toString();
     }
@@ -80,7 +83,8 @@ public class GHttpUtils {
                 conn.disconnect();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            ErrorLog.getInstance().exceptionLog("log", e);
         }
         return redirectsUrl;
     }
@@ -93,38 +97,46 @@ public class GHttpUtils {
      * @return
      */
     public static boolean download(String sourceUrl, String saveAbsolutePath, String filename, DownloadListening downloadListening) {
-        File file = new File(saveAbsolutePath);
-        File outFile = null;
-        if (!file.exists()) {
-            if (file.mkdirs()) outFile = new File(file, filename);
-        } else {
-            outFile = new File(file, filename);
-        }
-
-        if (outFile != null) {
-            try {
-                URL url = new URL(sourceUrl);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                //conn.setRequestProperty("Connection","keep-alive");
-                long total = conn.getContentLength();
-                conn.connect();
-                InputStream inputStream = conn.getInputStream();
-                FileOutputStream writer = new FileOutputStream(outFile);
-                long realCount = 0;
-                int len;
-                byte[] bytes = new byte[1024];
-                while ((len = inputStream.read(bytes)) != -1) {
-                    realCount += len;
-                    writer.write(bytes, 0, len);
-                    downloadListening.onProgress(realCount, total); //回调进度
-                }
-                writer.flush();
-                writer.close();
-                conn.disconnect();
-                return true;
-            } catch (Exception e) {
-                e.printStackTrace();
+        try {
+            //替换掉所有会造成文件保存失败的字符
+            filename = filename.replaceAll("\\s", "")
+                    .replaceAll("<", "《")
+                    .replaceAll(">", "》")
+                    .replaceAll(":", "-")
+                    .replaceAll("\"", "”")
+                    .replaceAll("/", "-")
+                    .replaceAll("\\\\", "-")
+                    .replaceAll("\\|", "-")
+                    .replaceAll("\\?", "？")
+                    .replaceAll("\\*", "-");
+            File file = new File(saveAbsolutePath);
+            File outFile;
+            if (!file.exists()) {
+                if (!file.mkdirs()) return false;
             }
+            outFile = new File(file, filename);
+            URL url = new URL(sourceUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            //conn.setRequestProperty("Connection","keep-alive");
+            long total = conn.getContentLength();
+            conn.connect();
+            InputStream inputStream = conn.getInputStream();
+            FileOutputStream writer = new FileOutputStream(outFile);
+            long realCount = 0;
+            int len;
+            byte[] bytes = new byte[1024];
+            while ((len = inputStream.read(bytes)) != -1) {
+                realCount += len;
+                writer.write(bytes, 0, len);
+                downloadListening.onProgress(realCount, total); //回调进度
+            }
+            writer.flush();
+            writer.close();
+            conn.disconnect();
+            return true;
+        } catch (Exception e) {
+            //e.printStackTrace();
+            ErrorLog.getInstance().exceptionLog("log", e);
         }
 
         return false;

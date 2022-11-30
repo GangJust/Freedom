@@ -112,12 +112,13 @@ class MainActivity : AppCompatActivity() {
             val versionName = packageInfo.versionName
             Version.getRemoteReleasesLatest {
                 if (it.tagName.isEmpty() || it.name.isEmpty()) return@getRemoteReleasesLatest
-                if ("v${versionName}" == it.tagName.lowercase() || "v${versionName}" == it.name.lowercase()) return@getRemoteReleasesLatest
-                runOnUiThread {
-                    Toast.makeText(application, "有新版本了!", Toast.LENGTH_SHORT).show()
-                    versionConfig = it
-                    initMenu(true)
-                    showUpdateDialog()
+                if (Version.compare(versionName, it.tagName) == 1 || Version.compare(versionName, it.name) == 1) {
+                    runOnUiThread {
+                        Toast.makeText(application, "有新版本了!", Toast.LENGTH_SHORT).show()
+                        versionConfig = it
+                        initMenu(true)
+                        showUpdateDialog()
+                    }
                 }
             }
         } catch (e: Exception) {

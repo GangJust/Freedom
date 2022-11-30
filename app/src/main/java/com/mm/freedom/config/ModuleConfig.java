@@ -68,13 +68,18 @@ public class ModuleConfig {
 
     //获取模块设置文件路径
     public static File getModuleConfigFile(Context context) {
+        return new File(getModuleConfigDir(context), "setting.json");
+    }
+
+    //获取模块配置路径:(外置存储器/Download/Freedom/.config)
+    public static File getModuleConfigDir(Context context) {
         File moduleDirectory = getModuleDirectory(context);
         File oldConfigDir = new File(moduleDirectory, "config");
         File newConfigDir = new File(moduleDirectory, ".config");
         //旧配置目录如果存在, 重命名为新配置目录
         if (oldConfigDir.exists()) oldConfigDir.renameTo(newConfigDir);
         if (!newConfigDir.exists()) newConfigDir.mkdirs();
-        return new File(newConfigDir, "setting.json");
+        return newConfigDir;
     }
 
     //获取模块目录, 如果不存在则创建: (外置存储器/Download/Freedom/)

@@ -3,10 +3,12 @@ package com.mm.freedom.hook.douyin
 import android.os.Bundle
 import android.widget.Toast
 import com.mm.freedom.PackNames
+import com.mm.freedom.config.ErrorLog
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.hook.base.BaseActivityHelper
 import com.mm.freedom.utils.GLockUtils
 import com.mm.freedom.utils.GLogUtils
+import com.mm.freedom.utils.GPathUtils
 import com.ss.android.ugc.aweme.main.MainActivity
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
@@ -24,6 +26,7 @@ class HMainActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
                 return@lockRunning
             }
             ModuleConfig.getModulePrivateDirectory(application).delete()
+            ErrorLog.init(ModuleConfig.getModuleConfigDir(application).absolutePath)
             handler.post { showToast(hookActivity, "Freedom Attach!") }
         }
     }

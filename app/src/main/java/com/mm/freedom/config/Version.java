@@ -2,6 +2,7 @@ package com.mm.freedom.config;
 
 import com.mm.freedom.utils.GHttpUtils;
 import com.mm.freedom.utils.GJSONUtils;
+import com.mm.freedom.utils.GTextUtils;
 
 import org.json.JSONObject;
 
@@ -40,6 +41,19 @@ public class Version {
                 updatedAt,
                 browserDownloadUrl
         );
+    }
+
+    // 比较两个版本名
+    // versionName1 > versionName2  return: -1
+    // versionName1 > versionName2  return: 1
+    // versionName1 == versionName2  return: 0
+    public static int compare(String versionName1, String versionName2) {
+        versionName1 = versionName1.replaceAll("[^0-9]", "");
+        versionName2 = versionName2.replaceAll("[^0-9]", "");
+        int max = Math.max(versionName1.length(), versionName2.length());
+        int ver1 = Integer.parseInt(GTextUtils.padRight(versionName1, max, '0'));
+        int ver2 = Integer.parseInt(GTextUtils.padRight(versionName2, max, '0'));
+        return Integer.compare(ver2, ver1);
     }
 
     // 版本信息

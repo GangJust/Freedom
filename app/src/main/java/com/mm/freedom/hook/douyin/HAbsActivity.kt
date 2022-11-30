@@ -7,26 +7,21 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Environment
-import android.os.Parcel
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.core.graphics.drawable.toBitmap
 import com.bytedance.ies.uikit.base.AbsActivity
-import com.freegang.androidtemplate.base.interfaces.TemplateCall
 import com.freegang.androidtemplate.base.interfaces.TemplateCallDefault
 import com.mm.freedom.config.Config
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.hook.base.BaseActivityHelper
 import com.mm.freedom.utils.*
-import com.ss.android.ugc.aweme.base.model.UrlModel
 import com.ss.android.ugc.aweme.comment.model.CommentImageStruct
 import com.ss.android.ugc.aweme.comment.ui.GifEmojiDetailActivity
 import com.ss.android.ugc.aweme.comment.ui.ImageDetailActivity
 import com.ss.android.ugc.aweme.detail.ui.DetailActivity
 import com.ss.android.ugc.aweme.emoji.model.Emoji
 import com.ss.android.ugc.aweme.main.MainActivity
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import java.io.File
 import java.util.*
@@ -223,9 +218,6 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
         optionNames: Array<String>,
         optionUrls: Array<String>
     ) {
-        val filename = shareTitle
-            .replace("\\s".toRegex(), "") //文件名不允许空白字符
-            .replace("/".toRegex(), "-") //文件名不允许出现路径分割符
         val builder = AlertDialog.Builder(hookActivity)
         builder.setTitle("Freedom")
         builder.setItems(optionNames) { dialog, which ->
@@ -233,12 +225,12 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
                 0 -> {
                     if (optionNames.filter { it.contains("图片") }.size == 1) {
                         val urls = optionUrls[which].split("|分割|")
-                        downloadPicture(hookActivity, urls, filename)
+                        downloadPicture(hookActivity, urls, shareTitle)
                     } else {
-                        downloadVideo(hookActivity, optionUrls[which], "$filename.mp4")
+                        downloadVideo(hookActivity, optionUrls[which], "$shareTitle.mp4")
                     }
                 }
-                1 -> downloadMusic(hookActivity, optionUrls[which], "$filename.mp3")
+                1 -> downloadMusic(hookActivity, optionUrls[which], "$shareTitle.mp3")
             }
             dialog.dismiss()
         }
