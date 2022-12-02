@@ -45,7 +45,7 @@ public class Version {
 
     // 比较两个版本名
     // versionName1 > versionName2  return: -1
-    // versionName1 > versionName2  return: 1
+    // versionName1 < versionName2  return: 1
     // versionName1 == versionName2  return: 0
     public static int compare(String versionName1, String versionName2) {
         versionName1 = versionName1.replaceAll("[^0-9]", "");

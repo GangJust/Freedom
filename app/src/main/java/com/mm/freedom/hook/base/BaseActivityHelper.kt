@@ -13,7 +13,7 @@ import com.mm.freedom.utils.GLockUtils
 import com.mm.freedom.xposed.ActivityHelper
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
-abstract class BaseActivityHelper<T : Activity>(lpparam: XC_LoadPackage.LoadPackageParam?, val targetClazz: Class<T>?) :
+abstract class BaseActivityHelper<T : Activity>(lpparam: XC_LoadPackage.LoadPackageParam, val targetClazz: Class<T>) :
     ActivityHelper<T>(lpparam, targetClazz) {
     private var messageToast: Toast? = null
     private var messageDialog: AlertDialog? = null

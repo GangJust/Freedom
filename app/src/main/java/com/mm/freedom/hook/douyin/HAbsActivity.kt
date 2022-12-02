@@ -30,7 +30,7 @@ import java.util.regex.Pattern
 /**
  * 抖音基础类, 基本上所有的Activity类都是继承至它的, 至少目前用到的所有类
  */
-class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
+class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
     BaseActivityHelper<AbsActivity>(lpparam, AbsActivity::class.java), TemplateCallDefault {
     private lateinit var config: Config
     private var onPrimaryClipChangedListener: ClipboardManager.OnPrimaryClipChangedListener? = null
@@ -502,6 +502,15 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam?) :
                 showToast(hookActivity, "保存${if (download) "成功^_^" else "失败~_~"}!")
             }
         }.start()
+    }
+
+    /// 头像、点赞、评论、分享 ImageView
+    private fun hookOptions(hookActivity: AbsActivity) {
+        //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
+        val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
+        GViewUtils.deepViewGroup(contentView).forEachIndexed { index, view ->
+            GLogUtils.xLog("视图$index: $view")
+        }
     }
 
     private fun File.addChildDir(dirname: String): File {

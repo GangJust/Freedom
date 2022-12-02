@@ -31,7 +31,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  */
 public abstract class ActivityHelper<T extends Activity> extends XposedExtendHelper {
 
-    protected ActivityHelper(XC_LoadPackage.LoadPackageParam lpparam, Class<T> targetClazz) {
+    protected ActivityHelper(@NonNull XC_LoadPackage.LoadPackageParam lpparam, @NonNull Class<T> targetClazz) {
         super(lpparam);
         hookOnCreate(targetClazz);
         hookOnStart(targetClazz);

@@ -27,6 +27,7 @@ public class GViewUtils {
         for (int i = 0; i < childCount; i++) {
             View childAt = viewGroup.getChildAt(i);
             if (childAt instanceof ViewGroup) {
+                list.add(childAt);
                 _recursionViewGroup((ViewGroup) childAt, list);
             } else {
                 list.add(childAt);
