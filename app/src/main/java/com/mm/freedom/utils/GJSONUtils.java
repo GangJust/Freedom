@@ -37,6 +37,8 @@ public class GJSONUtils {
     public static JSONObject parse(String jsonStr, Charset charset) {
         jsonStr = new String(jsonStr.getBytes(charset), charset);
         JSONObject jsonObject = new JSONObject();
+
+        if (jsonStr.isEmpty()) return jsonObject;
         try {
             jsonObject = new JSONObject(jsonStr);
         } catch (JSONException e) {
@@ -63,8 +65,9 @@ public class GJSONUtils {
      */
     public static JSONArray parseArray(String jsonStr, Charset charset) {
         jsonStr = new String(jsonStr.getBytes(charset), charset);
-
         JSONArray jsonArray = new JSONArray();
+
+        if (jsonStr.isEmpty()) return jsonArray;
         try {
             jsonArray = new JSONArray(jsonStr);
         } catch (JSONException e) {

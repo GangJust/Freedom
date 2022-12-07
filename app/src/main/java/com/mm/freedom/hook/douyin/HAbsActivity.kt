@@ -23,6 +23,10 @@ import com.ss.android.ugc.aweme.detail.ui.DetailActivity
 import com.ss.android.ugc.aweme.emoji.model.Emoji
 import com.ss.android.ugc.aweme.main.MainActivity
 import de.robv.android.xposed.callbacks.XC_LoadPackage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.*
 import java.util.regex.Pattern
@@ -83,36 +87,37 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                 val shareText = clipDataItem.text.toString()
                 //截取URL, 视频链接
                 if (shareText.contains("http")) {
-                    //跳过直播链接, 按文本检查
-                    if (shareText.contains("【抖音】") && shareText.contains("正在直播") && shareText.contains("一起支持")) {
-                        showToast(hookActivity, "不支持直播视频")
-                        return@OnPrimaryClipChangedListener
-                    }
-                    if (config.isClipDataDetailValue) {
-                        //handler.post { GLogUtils.xLogAndToast(hookActivity, "复制成功!\n$shareText"); }
-                        handler.post { showToast(hookActivity, "复制成功!\n$shareText") }
-                    } else {
-                        handler.post { showToast(hookActivity, "复制成功!") }
-                    }
-                    val start = shareText.indexOf("http")
-                    // 一般这个截取逻辑能用到死, 但是不排除抖音更新分享文本格式, 如果真更新再说.
-                    val sortUrl = shareText.substring(start)
-                    //获取真实地址
-                    getOriginalUrl(sortUrl) { originalUrl: String ->
+                    // 视频/图片详情获取操作
+                    CoroutineScope(Dispatchers.Main).launch {
+                        //跳过直播链接, 按文本检查
+                        if (shareText.contains("【抖音】") && shareText.contains("正在直播") && shareText.contains("一起支持")) {
+                            handler.post { showToast(hookActivity, "不支持直播视频") }
+                            return@launch
+                        }
+                        if (config.isClipDataDetailValue) {
+                            //handler.post { GLogUtils.xLogAndToast(hookActivity, "复制成功!\n$shareText"); }
+                            handler.post { showToast(hookActivity, "复制成功!\n$shareText") }
+                        } else {
+                            handler.post { showToast(hookActivity, "复制成功!") }
+                        }
+                        val start = shareText.indexOf("http")
+                        // 一般这个截取逻辑能用到死, 但是不排除抖音更新分享文本格式, 如果真更新再说.
+                        val sortUrl = shareText.substring(start)
+                        // 获取真实地址
+                        val originalUrl = getOriginalUrl(sortUrl)
                         if (originalUrl.isEmpty()) {
                             handler.post { showToast(hookActivity, "没有获取到该视频的真实地址") }
-                            return@getOriginalUrl
+                            return@launch
                         }
-                        //获取视频id
+                        // 获取视频id
                         val videoId = getVideoId(originalUrl)
                         if (videoId.isEmpty()) {
                             handler.post { showToast(hookActivity, "没有获取到该视频的ID") }
-                            return@getOriginalUrl
+                            return@launch
                         }
-                        //解析视频
-                        getItemInfo(videoId) { itemInfoJson: String ->
-                            parseItemInfo(hookActivity, itemInfoJson)
-                        }
+                        // 解析视频
+                        val itemInfo = getItemInfo(videoId)
+                        parseItemInfo(hookActivity, itemInfo)
                     }
                 }
             }
@@ -128,30 +133,26 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
     }
 
     //获取真实地址
-    private fun getOriginalUrl(sortUrl: String, callback: (String) -> Unit) {
-        //新起一个线程, 获取实际地址(短链接重定向后, 指向真实地址)
-        Thread {
-            val originalUrl = GHttpUtils.getRedirectsUrl(sortUrl)
-            callback(originalUrl)
-        }.start()
+    private suspend fun getOriginalUrl(sortUrl: String): String {
+        return withContext(Dispatchers.IO) {
+            return@withContext GHttpUtils.getRedirectsUrl(sortUrl)
+        }
     }
 
     //获取视频ID
     private fun getVideoId(originalUrl: String): String {
         //正则表达式, 获取视频ID
-        val compile = Pattern.compile("([0-9]+)(/?)") //最后一个斜线可能没有
+        val compile = Pattern.compile("(video/)([0-9]+)(/?)") //最后一个斜线可能没有
         val matcher = compile.matcher(originalUrl)
-        return if (matcher.find() && matcher.groupCount() >= 1) matcher.group(1) ?: "" else ""
+        return if (matcher.find() && matcher.groupCount() >= 1) matcher.group(2) ?: "" else ""
     }
 
     //通过视频ID解析出帖子(抖音中一条视频就是一个帖子)信息, 返回一个JSON数据
-    private fun getItemInfo(videoId: String, callback: (String) -> Unit) {
-        //获取基本信息, 固定url, 后面有更新再说
-        Thread {
+    private suspend fun getItemInfo(videoId: String): String {
+        return withContext(Dispatchers.IO) {
             val itemInfoUrl = "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids=$videoId"
-            val itemInfoJson = GHttpUtils.get(itemInfoUrl)
-            callback(itemInfoJson)
-        }.start()
+            return@withContext GHttpUtils.get(itemInfoUrl)
+        }
     }
 
     //解析 视频、音频、图片
@@ -269,12 +270,14 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
 
     // 下载图片(下载图片时filename作为文件夹)
     private fun downloadPicture(hookActivity: AbsActivity, urls: List<String>, filename: String) {
+        //替换特殊字符
+        val filename = GPathUtils.replaceSpecialChars(filename)
         if (urls.isEmpty()) {
             handler.post { showToast(hookActivity, "没有获取到图片") }
             return
         }
         //String path = hookActivity.getExternalFilesDir(null) + "/Picture/";
-        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM)
+        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM).addChildDir(filename)
         //如果打开了下载到Freedom文件夹开关
         if (config.isCustomDownloadValue) {
             path = ModuleConfig.getModuleDirectory(hookActivity, "Picture").addChildDir(filename)
@@ -282,7 +285,7 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
     }
 
-    // 下载文件
+    // 通用弹窗下载文件
     private fun downloadFileAndShowDialog(hookActivity: AbsActivity, url: String, path: String, filename: String) {
         //GLogUtils.xLog("下载: " + url);
         //GLogUtils.xLog("路径: " + path);
@@ -297,6 +300,8 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         progressDialog.show()
 
         Thread {
+            //替换特殊字符
+            val filename = GPathUtils.replaceSpecialChars(filename)
             val download = GHttpUtils.download(url, path, filename) { real: Long, total: Long ->
                 handler.post {
                     progressDialog.progress = (real * 100 / total).toInt()
@@ -312,7 +317,7 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         }.start()
     }
 
-    // 下载多个文件
+    // 通用下载多个文件
     private fun downloadFiles(hookActivity: AbsActivity, urls: List<String>, path: String, filename: String) {
         val urls = urls.filter { it.isNotEmpty() && it.isNotEmpty() }
         if (urls.isEmpty()) {
@@ -502,15 +507,6 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                 showToast(hookActivity, "保存${if (download) "成功^_^" else "失败~_~"}!")
             }
         }.start()
-    }
-
-    /// 头像、点赞、评论、分享 ImageView
-    private fun hookOptions(hookActivity: AbsActivity) {
-        //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
-        val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
-        GViewUtils.deepViewGroup(contentView).forEachIndexed { index, view ->
-            GLogUtils.xLog("视图$index: $view")
-        }
     }
 
     private fun File.addChildDir(dirname: String): File {

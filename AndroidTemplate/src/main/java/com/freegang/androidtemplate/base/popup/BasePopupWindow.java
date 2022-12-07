@@ -13,6 +13,9 @@ import androidx.annotation.IntDef;
 
 import com.freegang.androidtemplate.base.interfaces.TemplateCallDefault;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
 
 public abstract class BasePopupWindow extends PopupWindow
         implements TemplateCallDefault {
@@ -128,6 +131,7 @@ public abstract class BasePopupWindow extends PopupWindow
             Gravity.CLIP_VERTICAL,
             Gravity.CLIP_HORIZONTAL,
     })
+    @Retention(RetentionPolicy.SOURCE)
     public @interface PopupWindowGravity {
     }
 }

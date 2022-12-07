@@ -98,17 +98,6 @@ public class GHttpUtils {
      */
     public static boolean download(String sourceUrl, String saveAbsolutePath, String filename, DownloadListening downloadListening) {
         try {
-            //替换掉所有会造成文件保存失败的字符
-            filename = filename.replaceAll("\\s", "")
-                    .replaceAll("<", "《")
-                    .replaceAll(">", "》")
-                    .replaceAll(":", "-")
-                    .replaceAll("\"", "”")
-                    .replaceAll("/", "-")
-                    .replaceAll("\\\\", "-")
-                    .replaceAll("\\|", "-")
-                    .replaceAll("\\?", "？")
-                    .replaceAll("\\*", "-");
             File file = new File(saveAbsolutePath);
             File outFile;
             if (!file.exists()) {

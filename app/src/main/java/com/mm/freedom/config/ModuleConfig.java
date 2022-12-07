@@ -23,7 +23,10 @@ public class ModuleConfig {
         synchronized (lock) {
             new Thread(() -> {
                 try {
-                    FileInputStream inputStream = new FileInputStream(getModuleConfigFile(context));
+                    File settingFile = getModuleSettingFile(context);
+                    if (!settingFile.exists()) return;
+
+                    FileInputStream inputStream = new FileInputStream(settingFile);
                     StringBuilder builder = new StringBuilder();
                     int b;
                     while ((b = inputStream.read()) != -1) builder.append((char) b);
@@ -35,6 +38,7 @@ public class ModuleConfig {
                     config.setCustomDownloadValue(GJSONUtils.getBoolean(parse, "customDownload"));
                     config.setClipDataDetailValue(GJSONUtils.getBoolean(parse, "clipDataDetail"));
                     config.setSaveEmojiValue(GJSONUtils.getBoolean(parse, "saveEmoji"));
+                    config.setVersionName(GJSONUtils.getString(parse, "versionName"));
                     callback.callback(config);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -53,8 +57,9 @@ public class ModuleConfig {
                     setting.put("customDownload", config.isCustomDownloadValue());
                     setting.put("clipDataDetail", config.isClipDataDetailValue());
                     setting.put("saveEmoji", config.isSaveEmojiValue());
+                    setting.put("versionName", config.getVersionName());
 
-                    FileOutputStream outputStream = new FileOutputStream(getModuleConfigFile(context));
+                    FileOutputStream outputStream = new FileOutputStream(getModuleSettingFile(context));
                     outputStream.write(setting.toString().getBytes(StandardCharsets.UTF_8));
                     outputStream.flush();
                     outputStream.close();
@@ -67,8 +72,9 @@ public class ModuleConfig {
     }
 
     //获取模块设置文件路径
-    public static File getModuleConfigFile(Context context) {
-        return new File(getModuleConfigDir(context), "setting.json");
+    public static File getModuleSettingFile(Context context) {
+        File setting = new File(getModuleConfigDir(context), "setting.json");
+        return setting;
     }
 
     //获取模块配置路径:(外置存储器/Download/Freedom/.config)

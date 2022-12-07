@@ -12,6 +12,9 @@ public class Config {
     //保存表情包
     private boolean saveEmojiValue;
 
+    //当前版本名
+    private String versionName;
+
     public boolean isCustomDownloadValue() {
         return customDownloadValue;
     }
@@ -36,6 +39,14 @@ public class Config {
         this.saveEmojiValue = saveEmojiValue;
     }
 
+    public String getVersionName() {
+        return versionName;
+    }
+
+    public void setVersionName(String versionName) {
+        this.versionName = versionName;
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -43,6 +54,7 @@ public class Config {
                 "customDownloadValue=" + customDownloadValue +
                 ", clipDataDetailValue=" + clipDataDetailValue +
                 ", saveEmojiValue=" + saveEmojiValue +
+                ", versionName='" + versionName + '\'' +
                 '}';
     }
 }

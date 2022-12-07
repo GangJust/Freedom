@@ -18,10 +18,13 @@ import com.freegang.androidtemplate.dialog.MessageDialog
 import com.gyf.immersionbar.ImmersionBar
 import com.mm.freedom.R
 import com.mm.freedom.config.Config
+import com.mm.freedom.config.ErrorLog
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.config.Version
 import com.mm.freedom.databinding.ActivityMainBinding
+import com.mm.freedom.utils.GHttpUtils
 import com.permissionx.guolindev.PermissionX
+import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
     private var binding: ActivityMainBinding? = null
@@ -108,8 +111,7 @@ class MainActivity : AppCompatActivity() {
     //版本检查
     private fun checkVersion() {
         try {
-            val packageInfo = packageManager.getPackageInfo(packageName, 0)
-            val versionName = packageInfo.versionName
+            val versionName = getCurrentVersionName()
             Version.getRemoteReleasesLatest {
                 if (it.tagName.isEmpty() || it.name.isEmpty()) return@getRemoteReleasesLatest
                 if (Version.compare(versionName, it.tagName) == 1 || Version.compare(versionName, it.name) == 1) {
@@ -142,6 +144,12 @@ class MainActivity : AppCompatActivity() {
                 openBrowse(versionConfig.htmlUrl)
             }
             .show(supportFragmentManager)
+    }
+
+    //获取当前版本名
+    private fun getCurrentVersionName(): String {
+        val packageInfo = packageManager.getPackageInfo(packageName, 0)
+        return packageInfo.versionName
     }
 
     //权限获取
@@ -184,6 +192,7 @@ class MainActivity : AppCompatActivity() {
         config.isCustomDownloadValue = binding?.customDownloadSwitch?.isChecked ?: false
         config.isClipDataDetailValue = binding?.clipDataDetailSwitch?.isChecked ?: false
         config.isSaveEmojiValue = binding?.saveEmojiSwitch?.isChecked ?: false
+        config.versionName = getCurrentVersionName()
         ModuleConfig.putModuleConfig(this@MainActivity, config)
     }
 
