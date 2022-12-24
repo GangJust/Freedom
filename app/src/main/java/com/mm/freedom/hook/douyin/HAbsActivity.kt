@@ -229,7 +229,7 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                 //获取分享标题
                 if (GJSONUtils.hasKey(awemeDetail, "preview_title")) {
                     //分享标题: aweme_detail -> preview_title
-                    previewTitle = GJSONUtils.getString(GJSONUtils.get(awemeDetail, "share_info"), "share_title")
+                    previewTitle = GJSONUtils.getString(awemeDetail, "preview_title")
                 }
                 //获取图片(如果有图片, 则图片下载项, 否则显示视频下载项)
                 if (!GJSONUtils.isNull(awemeDetail, "images")) {
