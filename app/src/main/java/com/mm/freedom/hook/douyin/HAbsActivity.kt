@@ -9,13 +9,13 @@ import android.os.Bundle
 import android.os.Environment
 import android.widget.FrameLayout
 import android.widget.ImageView
-import androidx.core.graphics.drawable.toBitmap
 import com.bytedance.ies.uikit.base.AbsActivity
 import com.freegang.androidtemplate.base.interfaces.TemplateCallDefault
 import com.mm.freedom.config.Config
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.hook.base.BaseActivityHelper
 import com.mm.freedom.utils.*
+import com.mm.freedom.utils.GViewUtils.GViewNode
 import com.ss.android.ugc.aweme.comment.model.CommentImageStruct
 import com.ss.android.ugc.aweme.comment.ui.GifEmojiDetailActivity
 import com.ss.android.ugc.aweme.comment.ui.ImageDetailActivity
@@ -150,13 +150,14 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
     //通过视频ID解析出帖子(抖音中一条视频就是一个帖子)信息, 返回一个JSON数据
     private suspend fun getItemInfo(videoId: String): String {
         return withContext(Dispatchers.IO) {
-            val itemInfoUrl = "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids=$videoId"
+            //val itemInfoUrl = "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids=$videoId"
+            val itemInfoUrl = "https://www.iesdouyin.com/aweme/v1/web/aweme/detail/?aweme_id=$videoId"
             return@withContext GHttpUtils.get(itemInfoUrl)
         }
     }
 
-    //解析 视频、音频、图片
-    private fun parseItemInfo(hookActivity: AbsActivity, itemJson: String) {
+    //解析 视频、音频、图片(旧方案)
+    private fun parseItemInfoOld(hookActivity: AbsActivity, itemJson: String) {
         //解析出 标题、视频、背景音乐
         if (itemJson.isNotEmpty()) {
             val parse = GJSONUtils.parse(itemJson)
@@ -212,6 +213,54 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         }
     }
 
+    //解析 视频、音频、图片(新方案)
+    private fun parseItemInfo(hookActivity: AbsActivity, itemJson: String) {
+        //解析出 标题、视频、背景音乐
+        if (itemJson.isNotEmpty()) {
+            val parse = GJSONUtils.parse(itemJson)
+            val awemeDetail = GJSONUtils.get(parse, "aweme_detail")
+            if (GJSONUtils.isNotEmpty(awemeDetail)) {
+                //默认下载后保存的名称, 如果没取到分享的视频名的话
+                var previewTitle = "download"
+                //操作标题
+                val optionNames = mutableListOf<String>()
+                //操作URL, 和[optionNames]长度相同
+                val optionUrls = mutableListOf<String>()
+                //获取分享标题
+                if (GJSONUtils.hasKey(awemeDetail, "preview_title")) {
+                    //分享标题: aweme_detail -> preview_title
+                    previewTitle = GJSONUtils.getString(GJSONUtils.get(awemeDetail, "share_info"), "share_title")
+                }
+                //获取图片(如果有图片, 则图片下载项, 否则显示视频下载项)
+                if (!GJSONUtils.isNull(awemeDetail, "images")) {
+                    //暂不支持
+                    optionNames.add("图片(新方案暂未支持)")
+                    optionUrls.add("")
+                } else if (GJSONUtils.hasKey(awemeDetail, "video")) {
+                    //视频url: aweme_detail -> video -> play_addr -> url_list -> [0] 项
+                    val urlList = GJSONUtils.getArrayUntil(awemeDetail, "video", "play_addr", "url_list")
+                    val videoUrl = GJSONUtils.getString(urlList, 0)
+                    optionNames.add("视频")
+                    optionUrls.add(videoUrl)
+                }
+                //获取音频
+                if (GJSONUtils.hasKey(awemeDetail, "music")) {
+                    //音频url: aweme_detail -> music -> play_url -> url_list -> [0] 项
+                    val urlList = GJSONUtils.getArrayUntil(awemeDetail, "music", "play_url", "url_list")
+                    val musicUrl = GJSONUtils.getString(urlList, 0)
+                    optionNames.add("背景音乐")
+                    optionUrls.add(musicUrl)
+                }
+                //构建弹层, 并显示
+                showOptionDialog(hookActivity, previewTitle, optionNames.toTypedArray(), optionUrls.toTypedArray())
+            } else {
+                handler.post { showToast(hookActivity, "未获取到基本信息, 新方案暂不支持图文") }
+            }
+        } else {
+            handler.post { showToast(hookActivity, "未获取到基本信息") }
+        }
+    }
+
     //显示操作弹窗
     private fun showOptionDialog(
         hookActivity: AbsActivity,
@@ -222,6 +271,11 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         val builder = AlertDialog.Builder(hookActivity)
         builder.setTitle("Freedom")
         builder.setItems(optionNames) { dialog, which ->
+            if (optionUrls[which].isEmpty()) {
+                handler.post { showToast(hookActivity, "没有获取到下载地址") }
+                return@setItems
+            }
+
             when (which) {
                 0 -> {
                     if (optionNames.filter { it.contains("图片") }.size == 1) {
@@ -353,30 +407,6 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         hookImageDetail(hookActivity)
     }
 
-    // 评论区 -> 表情详情查看页 GifEmojiDetailActivity
-    private fun hookGifEmojiOld(hookActivity: AbsActivity) {
-        if (hookActivity is GifEmojiDetailActivity) {
-            handler.post { showToast(hookActivity, "查看表情") }
-            //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
-            val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
-            //获取到该布局下的 所有ImageView
-            val findViews = GViewUtils.findViews(contentView, ImageView::class.java)
-            //最后一个是表情图片, 类名(RemoteImageView), 后期可能发生变动
-            val remoteImageView = findViews.last()
-            //handler.post { GLogUtils.xLogAndToast(hookActivity, "ImageViewType: ${remoteImageView::class.java.name}") }
-            if (remoteImageView::class.java.name.contains("RemoteImageView")) { //这里需要注意, 后期抖音可能混淆该类
-                remoteImageView.isLongClickable = true
-                remoteImageView.setOnLongClickListener {
-                    // 获取表情内容
-                    val drawable = remoteImageView.drawable
-                    val bitmap = drawable.toBitmap(width = drawable.bounds.width(), height = drawable.bounds.height())
-                    savePicture(hookActivity, bitmap)
-                    true
-                }
-            }
-        }
-    }
-
     private fun hookGifEmoji(hookActivity: AbsActivity) {
         if (hookActivity is GifEmojiDetailActivity) {
             handler.post { showToast(hookActivity, "浏览表情") }
@@ -391,6 +421,10 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                         //handler.post { GLogUtils.xLogAndToast(hookActivity, "表情URL: $gifEmojiUrl") }
                         // 获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
                         val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
+
+                        val viewTree = GViewUtils.getViewTree(contentView)
+                        testViewTree(viewTree)
+
                         // 获取到该布局下的 所有ImageView
                         val findViews = GViewUtils.findViews(contentView, ImageView::class.java)
                         // 最后一个是表情图片, 类名(RemoteImageView), 后期可能发生变动
@@ -408,29 +442,6 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                 }
             }
 
-        }
-    }
-
-    // 评论区 -> 图片详情查看页 ImageDetailActivity
-    private fun hookImageDetailOld(hookActivity: AbsActivity) {
-        if (hookActivity is ImageDetailActivity) {
-            handler.post { showToast(hookActivity, "查看表情") }
-            //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
-            val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
-            //获取到该布局下的 所有ImageView
-            val findViews = GViewUtils.findViews(contentView, ImageView::class.java)
-            //最后一个是表情图片, 类名(RemoteImageView), 后期可能发生变动
-            val remoteImageView = findViews.last()
-            if (remoteImageView::class.java.name.contains("RemoteImageView")) {
-                remoteImageView.isLongClickable = true
-                remoteImageView.setOnLongClickListener {
-                    // 获取表情内容
-                    val drawable = remoteImageView.drawable
-                    val bitmap = drawable.toBitmap(width = drawable.bounds.width(), height = drawable.bounds.height())
-                    savePicture(hookActivity, bitmap)
-                    true
-                }
-            }
         }
     }
 
@@ -521,5 +532,28 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
             return this.substring(this.indexOf(".") + 1)
         }
         return this
+    }
+
+    /**
+     * 测试视图多叉树
+     *
+     * @param viewNode 需要测试的树节点, 允许是子节点, 也可以是根节点.
+     * 该方法将某个节点下的所有子节点作层级打印
+     */
+    fun testViewTree(viewNode: GViewNode) {
+        GLogUtils.xLog("┌────────────────────────────────────────────────────────")
+        GLogUtils.xLog("├" + viewNode.toSimpleString())
+        _printlnViewTree(viewNode, "---")
+        GLogUtils.xLog("└────────────────────────────────────────────────────────")
+    }
+
+    private fun _printlnViewTree(viewNode: GViewNode, indent: String) {
+        if (viewNode.children.isEmpty()) return
+        for (child in viewNode.children) {
+            GLogUtils.xLog("├" + indent + child.toSimpleString())
+            if (child.children.isNotEmpty()) {
+                _printlnViewTree(child, "$indent---")
+            }
+        }
     }
 }

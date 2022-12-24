@@ -7,7 +7,7 @@
     <string name="module_enabled">模块已成功加载!</string>
     <string name="module_custom_download">保存到: `外置存储器/Download/Freedom/`中</string>
     <string name="module_clip_data_detail">复制成功时提示完整的文本内容</string>
-    <string name="module_save_emoji">浏览表情/图片时, 长按保存到本地</string>
+    <string name="module_save_emoji">长按保存表情/图片(23.7.0以上不支持)</string>
     <string name="module_explain">在抖音运行状态下监听剪贴板的复制, 如果复制内容包含视频短链接, 则通过抖音官方地址解析出正常无水印的视频地址. 理论上通杀抖音所有版本, 但是不排除抖音后续会更新分享文本格式和视频地址的逻辑.\n\n免责声明: 本模块虽然监听剪贴板, 但只读取抖音分享时复制的文本, 并且只做内容解析. 如果担心隐私问题, 请您卸载, 谢谢配合!</string>
     <string name="module_ic_github">GitHub</string>
     <string name="module_github_hit">源代码开放, 计划进行中..</string>

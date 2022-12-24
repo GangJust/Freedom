@@ -5,6 +5,7 @@ import com.mm.freedom.config.ErrorLog
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.config.Version
 import com.mm.freedom.hook.base.BaseActivityHelper
+import com.mm.freedom.utils.GLockUtils
 import com.ss.android.ugc.aweme.main.MainActivity
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 

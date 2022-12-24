@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Message
 import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.ImageView
@@ -94,7 +95,19 @@ class MainActivity : AppCompatActivity() {
         //
         view.setOnClickListener() {
             if (!hasUpdate) {
-                Toast.makeText(this, "暂无更多操作", Toast.LENGTH_SHORT).show()
+                //Toast.makeText(this, "暂无更多操作", Toast.LENGTH_SHORT).show()
+                Version.getRemoteReleasesLatest {
+                    runOnUiThread {
+                        MessageDialog()
+                            .setSingleButton(true)
+                            .setTitle("更新日志 ${it.tagName}")
+                            .setContent(it.body)
+                            .setConfirm("我已了解")
+                            .setOnConfirmCallback { it.dismiss() }
+                            .show(supportFragmentManager)
+                    }
+                }
+
                 return@setOnClickListener
             }
             showUpdateDialog()
@@ -202,6 +215,12 @@ class MainActivity : AppCompatActivity() {
             data = Uri.parse(url)
         }
         startActivity(intent)
+    }
+
+    private fun showToast(msg: CharSequence) {
+        val toast = Toast.makeText(this, null, Toast.LENGTH_LONG)
+        toast.setText(msg)
+        toast.show()
     }
 
     //Xposed进行Hook调用, 设置模块状态
