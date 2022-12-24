@@ -15,6 +15,7 @@ public class Version {
         new Thread(() -> {
             String json = GHttpUtils.get(githubReleasesApi);
             if (json.isEmpty()) return;
+            if(json.contains("message") && json.contains("documentation_url")) return;
             callback.callback(parseVersionConfig(json));
         }).start();
     }

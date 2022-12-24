@@ -93,20 +93,20 @@ class MainActivity : AppCompatActivity() {
             view.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.ic_motion_state))
         }
         //
-        view.setOnClickListener() {
+        view.setOnClickListener {
             if (!hasUpdate) {
-                //Toast.makeText(this, "暂无更多操作", Toast.LENGTH_SHORT).show()
-                Version.getRemoteReleasesLatest {
-                    runOnUiThread {
-                        MessageDialog()
-                            .setSingleButton(true)
-                            .setTitle("更新日志 ${it.tagName}")
-                            .setContent(it.body)
-                            .setConfirm("我已了解")
-                            .setOnConfirmCallback { it.dismiss() }
-                            .show(supportFragmentManager)
-                    }
+                if (versionConfig == null) {
+                    Toast.makeText(this, "暂无更多操作", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
                 }
+
+                MessageDialog()
+                    .setSingleButton(true)
+                    .setTitle("更新日志 ${versionConfig!!.tagName}")
+                    .setContent(versionConfig!!.body)
+                    .setConfirm("我已了解")
+                    .setOnConfirmCallback { it.dismiss() }
+                    .show(supportFragmentManager)
 
                 return@setOnClickListener
             }
@@ -126,11 +126,11 @@ class MainActivity : AppCompatActivity() {
         try {
             val versionName = getCurrentVersionName()
             Version.getRemoteReleasesLatest {
+                versionConfig = it
                 if (it.tagName.isEmpty() || it.name.isEmpty()) return@getRemoteReleasesLatest
                 if (Version.compare(versionName, it.tagName) == 1 || Version.compare(versionName, it.name) == 1) {
                     runOnUiThread {
                         Toast.makeText(application, "有新版本了!", Toast.LENGTH_SHORT).show()
-                        versionConfig = it
                         initMenu(true)
                         showUpdateDialog()
                     }
