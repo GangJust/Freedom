@@ -25,7 +25,7 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
      *
      * @param title
      */
-    public MessageDialog setTitle(String title) {
+    public MessageDialog setTitle(CharSequence title) {
         this.entity.title = title;
         return this;
     }
@@ -56,7 +56,7 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
      *
      * @param content
      */
-    public MessageDialog setContent(String content) {
+    public MessageDialog setContent(CharSequence content) {
         this.entity.content = content;
         return this;
     }
@@ -76,7 +76,7 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
      *
      * @param cancel
      */
-    public MessageDialog setCancel(String cancel) {
+    public MessageDialog setCancel(CharSequence cancel) {
         this.entity.cancel = cancel;
         return this;
     }
@@ -96,7 +96,7 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
      *
      * @param confirm
      */
-    public MessageDialog setConfirm(String confirm) {
+    public MessageDialog setConfirm(CharSequence confirm) {
         this.entity.confirm = confirm;
         return this;
     }
@@ -223,21 +223,21 @@ public class MessageDialog extends BaseDialog<LayoutMessageDialogBinding, Messag
     public static class MessageDialogEntity extends BaseDialog.BaseDialogEntity {
         private static final long serialVersionUID = 3121241690534610292L;
         //标题文本
-        private String title = "Tips";
+        private CharSequence title = "Tips";
         //标题文本颜色
         private int titleColor = Color.parseColor("#ff333333");
         //标题是否居中
         private boolean centerTitle = false;
         //消息内容
-        private String content = "这是一条消息.";
+        private CharSequence content = "这是一条消息.";
         //消息内容颜色
         private int contentColor = Color.parseColor("#ff333333");
         //取消文本
-        private String cancel = "取消";
+        private CharSequence cancel = "取消";
         //取消文本颜色
         private int cancelColor = Color.parseColor("#ff666666");
         //确定文本
-        private String confirm = "确定";
+        private CharSequence confirm = "确定";
         //确定文本颜色
         private int confirmColor = Color.parseColor("#ff46ADFB");
         //是否翻转操作按钮颜色

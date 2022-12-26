@@ -6,7 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.os.Message
+import android.view.View
 import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.ImageView
@@ -19,13 +19,10 @@ import com.freegang.androidtemplate.dialog.MessageDialog
 import com.gyf.immersionbar.ImmersionBar
 import com.mm.freedom.R
 import com.mm.freedom.config.Config
-import com.mm.freedom.config.ErrorLog
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.config.Version
 import com.mm.freedom.databinding.ActivityMainBinding
-import com.mm.freedom.utils.GHttpUtils
 import com.permissionx.guolindev.PermissionX
-import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
     private var binding: ActivityMainBinding? = null
@@ -65,6 +62,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
+        binding?.saveEmojiSwitch?.visibility = View.GONE
         initMenu(false)
     }
 
@@ -194,7 +192,8 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 binding?.customDownloadSwitch?.isChecked = it.isCustomDownloadValue
                 binding?.clipDataDetailSwitch?.isChecked = it.isClipDataDetailValue
-                binding?.saveEmojiSwitch?.isChecked = it.isSaveEmojiValue
+                //binding?.saveEmojiSwitch?.isChecked = it.isSaveEmojiValue
+                binding?.saveEmojiSwitch?.isChecked = false
             }
         }
     }
@@ -204,7 +203,8 @@ class MainActivity : AppCompatActivity() {
         val config = Config()
         config.isCustomDownloadValue = binding?.customDownloadSwitch?.isChecked ?: false
         config.isClipDataDetailValue = binding?.clipDataDetailSwitch?.isChecked ?: false
-        config.isSaveEmojiValue = binding?.saveEmojiSwitch?.isChecked ?: false
+        //config.isSaveEmojiValue = binding?.saveEmojiSwitch?.isChecked ?: false
+        config.isSaveEmojiValue = false
         config.versionName = getCurrentVersionName()
         ModuleConfig.putModuleConfig(this@MainActivity, config)
     }
