@@ -27,7 +27,7 @@ import java.io.File
  * 抖音表情详情查看弹层(聊天页, 弹出的底部弹层) EmojiDetailDialog
  *
  */
-@Deprecated("请使用评论区图片长按保存")
+@Deprecated("已经废弃")
 class HEmojiBottomSheetDialog(lpparam: XC_LoadPackage.LoadPackageParam?) :
     DialogHelper<EmojiBottomSheetDialog>(lpparam, EmojiBottomSheetDialog::class.java) {
 

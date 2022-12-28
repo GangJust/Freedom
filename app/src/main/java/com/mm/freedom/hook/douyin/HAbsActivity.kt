@@ -278,7 +278,7 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         hookActivity: AbsActivity,
         shareTitle: String,
         optionNames: Array<String>,
-        optionUrls: Array<String>
+        optionUrls: Array<String>,
     ) {
         val builder = AlertDialog.Builder(hookActivity)
         builder.setTitle("Freedom")
@@ -343,12 +343,14 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
             return
         }
         //String path = hookActivity.getExternalFilesDir(null) + "/Picture/";
-        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM).addChildDir(filename)
         //如果打开了下载到Freedom文件夹开关
         if (config.isCustomDownloadValue) {
-            path = ModuleConfig.getModuleDirectory(hookActivity, "Picture").addChildDir(filename)
+            val path = ModuleConfig.getModuleDirectory(hookActivity, "Picture").addChildDir(filename)
+            downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
+        } else {
+            val path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM).addChildDir(filename)
+            downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
         }
-        downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
     }
 
     // 通用弹窗下载文件
