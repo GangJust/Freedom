@@ -16,30 +16,34 @@ class HMainActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
     BaseActivityHelper<MainActivity>(lpparam, MainActivity::class.java) {
 
     override fun onAfterCreate(hookActivity: MainActivity, bundle: Bundle?) {
-        lockRunning(".init") {
-            //加载模块设置
-            val moduleDirectory = ModuleConfig.getModuleDirectory(application)
-            if (moduleDirectory.absolutePath.contains("com.ss.android.ugc.aweme")) {
-                handler.post { showToast(hookActivity, "抖音未获得文件读写权限") }
-                return@lockRunning
-            }
 
-            //删除临时文件
-            ModuleConfig.getModulePrivateDirectory(application).delete()
+        //删除临时文件锁, 用不到了
+        GLockUtils.fileUnlock(hookActivity, ".init")
+        GLockUtils.fileUnlock(hookActivity, ".gifEmoji")
+        GLockUtils.fileUnlock(hookActivity, ".running")
 
-            //初始化错误日志
-            ErrorLog.init(ModuleConfig.getModuleConfigDir(application).absolutePath)
+        //加载模块设置
+        val moduleDirectory = ModuleConfig.getModuleDirectory(application)
+        if (moduleDirectory.absolutePath.contains("com.ss.android.ugc.aweme")) {
+            handler.post { showToast(hookActivity, "抖音未获得文件读写权限") }
+            return
+        }
 
-            //提示附加成功
-            handler.post { showToast(hookActivity, "Freedom Attach!") }
+        //删除临时文件
+        ModuleConfig.getModulePrivateDirectory(application).delete()
 
-            //检测是否有更新
-            ModuleConfig.getModuleConfig(application) {
-                val versionName = it.versionName
-                Version.getRemoteReleasesLatest { versionConfig ->
-                    if (Version.compare(versionName, versionConfig.name) == 1) {
-                        handler.post { showToast(hookActivity, "Freedom有新版本了!") }
-                    }
+        //初始化错误日志
+        ErrorLog.init(ModuleConfig.getModuleConfigDir(application).absolutePath)
+
+        //提示附加成功
+        handler.post { showToast(hookActivity, "Freedom Attach!") }
+
+        //检测是否有更新
+        ModuleConfig.getModuleConfig(application) {
+            val versionName = it.versionName
+            Version.getRemoteReleasesLatest { versionConfig ->
+                if (Version.compare(versionName, versionConfig.name) == 1) {
+                    handler.post { showToast(hookActivity, "Freedom有新版本了!") }
                 }
             }
         }

@@ -6,8 +6,11 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.mm.freedom.config.ModuleConfig;
+import com.mm.freedom.hook.douyin.HookDY;
 import com.mm.freedom.utils.GLockUtils;
 import com.mm.freedom.utils.XClassLoader;
+import com.mm.freedom.xposed.extension.KtXposedHelpers;
+import com.mm.freedom.xposed.extension.KtXposedMoreKt;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -23,6 +26,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class AttachHook implements IXposedHookLoadPackage {
     protected XClassLoader xClassLoader;
+    private static final MainHook mainHook = new MainHook();
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -61,7 +65,7 @@ public class AttachHook implements IXposedHookLoadPackage {
                         String processName = getProcessName(context);
                         if (processName != null && !processName.equals(context.getPackageName())) return;
 
-                        startModule(lpparam);
+                        startModule(lpparam, (Application) param.thisObject);
                     }
                 }
         );
@@ -73,10 +77,11 @@ public class AttachHook implements IXposedHookLoadPackage {
      * @param lpparam
      * @throws Throwable
      */
-    private void startModule(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+    private void startModule(XC_LoadPackage.LoadPackageParam lpparam, Application application) throws Throwable {
         //调用 MainHook
         if (xClassLoader != null) lpparam.classLoader = xClassLoader;
-        new MainHook().handleLoadPackage(lpparam);
+        mainHook.handleLoadPackage(lpparam);
+        mainHook.handleLoadPackage(lpparam, application);
     }
 
     /**

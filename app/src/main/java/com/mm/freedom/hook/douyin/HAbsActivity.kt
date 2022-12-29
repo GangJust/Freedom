@@ -40,29 +40,25 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
     private var onPrimaryClipChangedListener: ClipboardManager.OnPrimaryClipChangedListener? = null
 
     override fun onAfterCreate(hookActivity: AbsActivity, bundle: Bundle?) {
-        lockRunning(".gifEmoji") {
-            ModuleConfig.getModuleConfig(application) {
-                config = it
-                if (isInstance(hookActivity, GifEmojiDetailActivity::class.java)
-                    || isInstance(hookActivity, ImageDetailActivity::class.java)
-                ) {
-                    //GLogUtils.xLog("Emoji!!")
-                    hookEmoji(hookActivity)
-                }
+        ModuleConfig.getModuleConfig(application) {
+            config = it
+            if (isInstance(hookActivity, GifEmojiDetailActivity::class.java)
+                || isInstance(hookActivity, ImageDetailActivity::class.java)
+            ) {
+                //GLogUtils.xLog("Emoji!!")
+                hookEmoji(hookActivity)
             }
         }
     }
 
     override fun onBeforeResume(hookActivity: AbsActivity) {
-        lockRunning(".running") {
-            ModuleConfig.getModuleConfig(application) {
-                config = it
-                if (isInstance(hookActivity, MainActivity::class.java)
-                    || isInstance(hookActivity, DetailActivity::class.java)
-                ) {
-                    //GLogUtils.xLog("Video!!")
-                    hookVideo(hookActivity)
-                }
+        ModuleConfig.getModuleConfig(application) {
+            config = it
+            if (isInstance(hookActivity, MainActivity::class.java)
+                || isInstance(hookActivity, DetailActivity::class.java)
+            ) {
+                //GLogUtils.xLog("Video!!")
+                hookVideo(hookActivity)
             }
         }
     }
@@ -343,12 +339,14 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
             return
         }
         //String path = hookActivity.getExternalFilesDir(null) + "/Picture/";
-        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM).addChildDir(filename)
         //如果打开了下载到Freedom文件夹开关
         if (config.isCustomDownloadValue) {
-            path = ModuleConfig.getModuleDirectory(hookActivity, "Picture").addChildDir(filename)
+            val path = ModuleConfig.getModuleDirectory(hookActivity, "Picture").addChildDir(filename)
+            downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
+        }else{
+            val path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM).addChildDir(filename)
+            downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
         }
-        downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
     }
 
     // 通用弹窗下载文件
