@@ -2,7 +2,7 @@
     <string name="app_name">Freedom</string>
     <string name="app_sub_name">No one is always happy.</string>
     <string name="app_menu_other">other</string>
-    <string name="module_des">依赖于抖音运行的辅助模块.</string>
+    <string name="module_des">依赖于抖音运行的无水印下载模块.</string>
     <string name="module_disable">模块未加载，请前往 XposedManager 启用!</string>
     <string name="module_enabled">模块已成功加载!</string>
     <string name="module_custom_download">保存到: `外置存储器/Download/Freedom/`中</string>

@@ -4,23 +4,15 @@ import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Bitmap
-import android.os.Bundle
 import android.os.Environment
-import android.widget.FrameLayout
-import android.widget.ImageView
 import com.bytedance.ies.uikit.base.AbsActivity
-import com.freegang.androidtemplate.base.interfaces.TemplateCallDefault
 import com.mm.freedom.config.Config
 import com.mm.freedom.config.ModuleConfig
 import com.mm.freedom.hook.base.BaseActivityHelper
-import com.mm.freedom.utils.*
-import com.mm.freedom.utils.GViewUtils.GViewNode
-import com.ss.android.ugc.aweme.comment.model.CommentImageStruct
-import com.ss.android.ugc.aweme.comment.ui.GifEmojiDetailActivity
-import com.ss.android.ugc.aweme.comment.ui.ImageDetailActivity
+import com.mm.freedom.utils.GHttpUtils
+import com.mm.freedom.utils.GJSONUtils
+import com.mm.freedom.utils.GPathUtils
 import com.ss.android.ugc.aweme.detail.ui.DetailActivity
-import com.ss.android.ugc.aweme.emoji.model.Emoji
 import com.ss.android.ugc.aweme.main.MainActivity
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import kotlinx.coroutines.CoroutineScope
@@ -28,28 +20,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.*
 import java.util.regex.Pattern
 
 /**
  * 抖音基础类, 基本上所有的Activity类都是继承至它的, 至少目前用到的所有类
  */
 class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
-    BaseActivityHelper<AbsActivity>(lpparam, AbsActivity::class.java), TemplateCallDefault {
+    BaseActivityHelper<AbsActivity>(lpparam, AbsActivity::class.java) {
     private lateinit var config: Config
     private var onPrimaryClipChangedListener: ClipboardManager.OnPrimaryClipChangedListener? = null
-
-    override fun onAfterCreate(hookActivity: AbsActivity, bundle: Bundle?) {
-        ModuleConfig.getModuleConfig(application) {
-            config = it
-            if (isInstance(hookActivity, GifEmojiDetailActivity::class.java)
-                || isInstance(hookActivity, ImageDetailActivity::class.java)
-            ) {
-                //GLogUtils.xLog("Emoji!!")
-                hookEmoji(hookActivity)
-            }
-        }
-    }
 
     override fun onBeforeResume(hookActivity: AbsActivity) {
         ModuleConfig.getModuleConfig(application) {
@@ -204,7 +183,7 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                     optionUrls.add(musicUrl)
                 }
                 //构建弹层, 并显示
-                showOptionDialog(hookActivity, shareTitle, optionNames.toTypedArray(), optionUrls.toTypedArray())
+                showOptionDialog(hookActivity, shareTitle, "", "", optionNames.toTypedArray(), optionUrls.toTypedArray())
             } else {
                 handler.post { showToast(hookActivity, "没有获取到这条视频的基本信息") }
             }
@@ -220,17 +199,20 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
             val parse = GJSONUtils.parse(itemJson)
             val awemeDetail = GJSONUtils.get(parse, "aweme_detail")
             if (GJSONUtils.isNotEmpty(awemeDetail)) {
-                //默认下载后保存的名称, 如果没取到分享的视频名的话
-                var previewTitle = "download"
                 //操作标题
                 val optionNames = mutableListOf<String>()
                 //操作URL, 和[optionNames]长度相同
                 val optionUrls = mutableListOf<String>()
-                //获取分享标题
-                if (GJSONUtils.hasKey(awemeDetail, "preview_title")) {
-                    //分享标题: aweme_detail -> preview_title
-                    previewTitle = GJSONUtils.getString(awemeDetail, "preview_title")
-                }
+
+                //分享标题: aweme_detail -> preview_title
+                val previewTitle = GJSONUtils.getString(awemeDetail, "preview_title")
+
+                //获取 用户昵称(账号) : author -> nickname / unique_id
+                val author = GJSONUtils.get(awemeDetail, "author")
+                val nickname = GJSONUtils.getString(author, "nickname")
+                val uniqueId = GJSONUtils.getString(author, "unique_id")
+                val shortId = uniqueId.ifEmpty { GJSONUtils.getString(author, "short_id") }
+
                 //获取图片(如果有图片, 则图片下载项, 否则显示视频下载项)
                 if (!GJSONUtils.isNull(awemeDetail, "images")) {
                     optionNames.add("图片")
@@ -251,6 +233,7 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                     optionNames.add("视频")
                     optionUrls.add(videoUrl)
                 }
+
                 //获取音频
                 if (GJSONUtils.hasKey(awemeDetail, "music")) {
                     //音频url: aweme_detail -> music -> play_url -> url_list -> 末尾项
@@ -259,8 +242,9 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                     optionNames.add("背景音乐")
                     optionUrls.add(musicUrl)
                 }
+
                 //构建弹层, 并显示
-                showOptionDialog(hookActivity, previewTitle, optionNames.toTypedArray(), optionUrls.toTypedArray())
+                showOptionDialog(hookActivity, previewTitle, nickname, shortId, optionNames.toTypedArray(), optionUrls.toTypedArray())
             } else {
                 handler.post { showToast(hookActivity, "未获取到基本信息, 新方案暂不支持图文") }
             }
@@ -273,8 +257,10 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
     private fun showOptionDialog(
         hookActivity: AbsActivity,
         shareTitle: String,
+        nickname: String,
+        uniqueId: String,
         optionNames: Array<String>,
-        optionUrls: Array<String>
+        optionUrls: Array<String>,
     ) {
         val builder = AlertDialog.Builder(hookActivity)
         builder.setTitle("Freedom")
@@ -288,12 +274,12 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
                 0 -> {
                     if (optionNames.filter { it.contains("图片") }.size == 1) {
                         val urls = optionUrls[which].split("|分割|")
-                        downloadPicture(hookActivity, urls, shareTitle)
+                        downloadPicture(hookActivity, "$nickname($uniqueId)", urls, shareTitle)
                     } else {
-                        downloadVideo(hookActivity, optionUrls[which], "$shareTitle.mp4")
+                        downloadVideo(hookActivity, "$nickname($uniqueId)", optionUrls[which], "$shareTitle.mp4")
                     }
                 }
-                1 -> downloadMusic(hookActivity, optionUrls[which], "$shareTitle.mp3")
+                1 -> downloadMusic(hookActivity, "$nickname($uniqueId)", optionUrls[which], "$shareTitle.mp3")
             }
             dialog.dismiss()
         }
@@ -301,39 +287,43 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
     }
 
     // 下载视频
-    private fun downloadVideo(hookActivity: AbsActivity, url: String, filename: String) {
+    private fun downloadVideo(hookActivity: AbsActivity, authorName: String, url: String, filename: String) {
         if (url.isEmpty()) {
             handler.post { showToast(hookActivity, "没有获取到这条视频的URL地址") }
             return
         }
         //String path = hookActivity.getExternalFilesDir(null) + "/Video/";
-        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM)
         //如果打开了下载到Freedom文件夹开关
         if (config.isCustomDownloadValue) {
-            path = ModuleConfig.getModuleDirectory(hookActivity, "Video")
+            val path = ModuleConfig.getModuleDirectory(hookActivity, "Video").addChildDir(authorName)
+            downloadFileAndShowDialog(hookActivity, url, path.absolutePath, filename)
+        } else {
+            val path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM)
+            downloadFileAndShowDialog(hookActivity, url, path.absolutePath, filename)
         }
-        downloadFileAndShowDialog(hookActivity, url, path.absolutePath, filename)
     }
 
     // 下载音频
-    private fun downloadMusic(hookActivity: AbsActivity, url: String, filename: String) {
+    private fun downloadMusic(hookActivity: AbsActivity, authorName: String, url: String, filename: String) {
         if (url.isEmpty()) {
             handler.post { showToast(hookActivity, "没有获取到这条视频的背景音乐") }
             return
         }
         //String path = hookActivity.getExternalFilesDir(null) + "/Music/";
-        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_MUSIC)
         //如果打开了下载到Freedom文件夹开关
         if (config.isCustomDownloadValue) {
-            path = ModuleConfig.getModuleDirectory(hookActivity, "Music")
+            val path = ModuleConfig.getModuleDirectory(hookActivity, "Music").addChildDir(authorName)
+            downloadFileAndShowDialog(hookActivity, url, path.absolutePath, filename)
+        } else {
+            val path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_MUSIC)
+            downloadFileAndShowDialog(hookActivity, url, path.absolutePath, filename)
         }
-        downloadFileAndShowDialog(hookActivity, url, path.absolutePath, filename)
     }
 
     // 下载图片(下载图片时filename作为文件夹)
-    private fun downloadPicture(hookActivity: AbsActivity, urls: List<String>, filename: String) {
-        //替换特殊字符
-        val filename = GPathUtils.replaceSpecialChars(filename)
+    private fun downloadPicture(hookActivity: AbsActivity, authorName: String, urls: List<String>, filename: String) {
+        //如果没有文件名以时间戳为文件名, 否则替换特殊字符
+        val filename = if (filename.isEmpty()) "${System.currentTimeMillis() / 1000}" else GPathUtils.replaceSpecialChars(filename)
         if (urls.isEmpty()) {
             handler.post { showToast(hookActivity, "没有获取到图片") }
             return
@@ -341,11 +331,11 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         //String path = hookActivity.getExternalFilesDir(null) + "/Picture/";
         //如果打开了下载到Freedom文件夹开关
         if (config.isCustomDownloadValue) {
-            val path = ModuleConfig.getModuleDirectory(hookActivity, "Picture").addChildDir(filename)
+            val path = ModuleConfig.getModuleDirectory(hookActivity, "Picture").addChildDir(authorName).addChildDir(filename)
             downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
-        }else{
-            val path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM).addChildDir(filename)
-            downloadFiles(hookActivity, urls, path.absolutePath, "$filename.jpeg")
+        } else {
+            val path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM)
+            downloadFiles(hookActivity, urls, path.absolutePath, "${System.currentTimeMillis() / 1000}.jpeg")
         }
     }
 
@@ -364,8 +354,8 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
         progressDialog.show()
 
         Thread {
-            //替换特殊字符
-            val filename = GPathUtils.replaceSpecialChars(filename)
+            //如果没有文件名以时间戳为文件名, 否则替换特殊字符
+            val filename = if (filename.isEmpty()) "${System.currentTimeMillis() / 1000}" else GPathUtils.replaceSpecialChars(filename)
             val download = GHttpUtils.download(url, path, filename) { real: Long, total: Long ->
                 handler.post {
                     progressDialog.progress = (real * 100 / total).toInt()
@@ -399,129 +389,6 @@ class HAbsActivity(lpparam: XC_LoadPackage.LoadPackageParam) :
             handler.post {
                 val fail = urls.size - count
                 showToast(hookActivity, if (fail <= 0) "下载成功!" else "${fail}个文件下载失败!")
-            }
-        }.start()
-    }
-
-    /// 表情图片
-    private fun hookEmoji(hookActivity: AbsActivity) {
-        if (!config.isSaveEmojiValue) {
-            handler.post { showToast(hookActivity, "未开启长按保存表情图片") }
-            return
-        }
-        //按道理说, 以下两个方法内部都是通用的, 但是无法避免抖音后期更新可能照成布局改动, 因此分开写
-        //hookGifEmojiOld(hookActivity)
-        //hookImageDetailOld(hookActivity)
-
-        hookGifEmoji(hookActivity)
-        hookImageDetail(hookActivity)
-    }
-
-    private fun hookGifEmoji(hookActivity: AbsActivity) {
-        if (hookActivity is GifEmojiDetailActivity) {
-            handler.post { showToast(hookActivity, "浏览表情") }
-            val gifEmojiExtra = hookActivity.intent.getSerializableExtra("gif_emoji")
-            call(gifEmojiExtra) {
-                val emoji = gifEmojiExtra as Emoji
-                val animateUrl = emoji.animateUrl
-                call(animateUrl) {
-                    val urlList = animateUrl.urlList
-                    if (urlList.isNotEmpty()) {
-                        val gifEmojiUrl = urlList.last()
-                        //handler.post { GLogUtils.xLogAndToast(hookActivity, "表情URL: $gifEmojiUrl") }
-                        // 获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
-                        val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
-                        // 获取到该布局下的 所有ImageView
-                        val findViews = GViewUtils.findViews(contentView, ImageView::class.java)
-                        // 最后一个是表情图片, 类名(RemoteImageView), 后期可能发生变动
-                        val remoteImageView = findViews.last()
-                        // handler.post { GLogUtils.xLogAndToast(hookActivity, "ImageViewType: ${remoteImageView::class.java.name}") }
-                        if (remoteImageView::class.java.name.contains("RemoteImageView")) { //这里需要注意, 后期抖音可能混淆该类
-                            remoteImageView.isLongClickable = true
-                            remoteImageView.setOnLongClickListener {
-                                //表情统一用gif作为后缀
-                                downloadEmoji(hookActivity, gifEmojiUrl, "gif")
-                                true
-                            }
-                        }
-                    }
-                }
-            }
-
-        }
-    }
-
-    private fun hookImageDetail(hookActivity: AbsActivity) {
-        if (hookActivity is ImageDetailActivity) {
-            handler.post { showToast(hookActivity, "浏览图片") }
-            val commentImageExtra = hookActivity.intent.getSerializableExtra("key_image")
-            call(commentImageExtra) {
-                val commentImage = commentImageExtra as CommentImageStruct
-                val originUrl = commentImage.originUrl
-                call(originUrl) {
-                    val urlList = originUrl.urlList
-                    if (urlList.isNotEmpty()) {
-                        val commentImageUrl = urlList.first()
-                        //handler.post { GLogUtils.xLogAndToast(hookActivity, "图片URL: $commentImageUrl") }
-                        //获取到屏幕上的布局, (统一ID: android.R.id.content, 也就是 setContentView 设置的布局)
-                        val contentView = hookActivity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
-                        //获取到该布局下的 所有ImageView
-                        val findViews = GViewUtils.findViews(contentView, ImageView::class.java)
-                        //最后一个是表情图片, 类名(RemoteImageView), 后期可能发生变动
-                        val remoteImageView = findViews.last()
-                        if (remoteImageView::class.java.name.contains("RemoteImageView")) {
-                            remoteImageView.isLongClickable = true
-                            remoteImageView.setOnLongClickListener {
-                                var suffix = "png"
-                                if (commentImageUrl.lowercase(Locale.getDefault()).contains(".gif")) {
-                                    suffix = "gif"
-                                } else if (commentImageUrl.lowercase(Locale.getDefault()).contains(".jpg")) {
-                                    suffix = "jpg"
-                                } else if (commentImageUrl.lowercase(Locale.getDefault()).contains(".jpeg")) {
-                                    suffix = "jpeg"
-                                }
-                                downloadEmoji(hookActivity, commentImageUrl, suffix)
-                                true
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 保存图片到本地
-    private fun savePicture(hookActivity: AbsActivity, bitmap: Bitmap) {
-        // 保存路径
-        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM)
-        // 如果打开了下载到Freedom文件夹开关
-        if (config.isCustomDownloadValue) {
-            path = ModuleConfig.getModuleDirectory(hookActivity, "Emoji")
-        }
-
-        Thread {
-            //以时间戳作为文件名
-            val result = GBitmapUtils.bitmap2Path(bitmap, path.absolutePath, "${System.currentTimeMillis()}.png")
-            handler.post {
-                showToast(hookActivity, "保存${if (result) "成功^_^" else "失败~_~"}!")
-            }
-        }.start()
-    }
-
-    // 下载表情
-    private fun downloadEmoji(hookActivity: AbsActivity, url: String, suffix: String) {
-        // 保存路径
-        var path = File(GPathUtils.getStoragePath(hookActivity), Environment.DIRECTORY_DCIM)
-        // 如果打开了下载到Freedom文件夹开关
-        if (config.isCustomDownloadValue) {
-            path = ModuleConfig.getModuleDirectory(hookActivity, "Emoji")
-        }
-        Thread {
-            //GLogUtils.xLog("保存: $url")
-            // 以时间戳作为文件名
-            val download = GHttpUtils.download(url, path.absolutePath, "${System.currentTimeMillis()}.$suffix") { real, total -> }
-            handler.post {
-                showToast(hookActivity, "保存${if (download) "成功^_^" else "失败~_~"}!")
             }
         }.start()
     }
